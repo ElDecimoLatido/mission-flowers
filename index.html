@@ -160,6 +160,11 @@
       flex: 0 1 auto;
     }
 
+    .btn[aria-disabled="true"]{
+      opacity:.55;
+      pointer-events:none;
+    }
+
     /* === QA input === */
     .qa{
       width:100%;
@@ -210,27 +215,22 @@
 
   <canvas id="matrix"></canvas>
 
-  <!-- ✅ Fondo durante la PREGUNTA -->
   <audio id="questionBgAudio" preload="auto" loop>
     <source src="audio/countdown.mp3" type="audio/mpeg">
   </audio>
 
-  <!-- (Opcional) Fondo final si luego quieres agregar uno -->
   <audio id="finalBgAudio" preload="auto" loop>
     <source src="audio/bg-final.mp3" type="audio/mpeg">
   </audio>
 
-  <!-- ✅ Tack base (no se reproduce directo; se clona por tick) -->
   <audio id="typeAudio" preload="auto">
     <source src="audio/tack.mp3" type="audio/mpeg">
   </audio>
 
-  <!-- ✅ Error -->
   <audio id="errorAudio" preload="auto">
     <source src="audio/error.mp3" type="audio/mpeg">
   </audio>
 
-  <!-- ✅ Logro -->
   <audio id="successAudio" preload="auto">
     <source src="audio/great.mp3" type="audio/mpeg">
   </audio>
@@ -245,12 +245,10 @@
         <div class="screen" id="screen"></div>
       </div>
 
-      <!-- Intro -->
       <div class="actions" id="acceptWrap" style="display:none;">
         <a class="btn primary" href="#" id="acceptBtn">Verificar Identidad</a>
       </div>
 
-      <!-- Pregunta -->
       <div class="qa" id="qaWrap">
         <div class="qaRow">
           <input class="qaInput" id="answerInput" type="text" placeholder="Escribe tu respuesta aquí…" autocomplete="off" />
@@ -259,7 +257,6 @@
         <div class="qaMeta" id="attemptsMeta"></div>
       </div>
 
-      <!-- Final (solo 1 botón) -->
       <div class="actions" id="finalActions" style="display:none;">
         <a class="btn primary" href="#" id="mapsBtn">Abrir Ubicación</a>
       </div>
@@ -267,9 +264,6 @@
   </div>
 
   <script>
-    // ==========================
-    // ✅ CONFIG
-    // ==========================
     const CORRECT_ANSWER_CANON = "cancun";
     const MAPS_COORDS = "20.570176958966897,-100.41493106236638";
     const MAPS_LABEL = "Ubicación secreta";
@@ -308,16 +302,14 @@
       ">> es delicado, intencional y fue elegido con cariño.",
       "",
       "",
-      ">> Para acceder al punto clave, es importante memorizar el nombre en clave: ”Miztli”",
+      ">> Para acceder al punto clave, es importante memorizar el nombre en clave: ”Miztli”",
       ">> Al llegar al lugar, identifícate correctamente.",
-      ">> El acceso solo se concederá si el pedido se solicita en nombre de los agentes Jael y Armando.",
+      ">> El acceso solo se concederá si el pedido se solicita en nombre de los agentes Jael y Armando.",
       "",
-      ">> Una vez cumplido el protocolo, la misión continuará..."
+      ">> Una vez cumplido el protocolo,",
+      ">> la misión continuará..."
     ];
 
-    // ==========================
-    // TUNING
-    // ==========================
     const TYPE_SPEED = 55;
     const LINE_DELAY = 450;
     const BOOT_DELAY = 650;
@@ -326,9 +318,6 @@
     const TYPE_TICK_VOLUME = 0.25;
     const QUESTION_BG_VOL = 0.18;
 
-    // ==========================
-    // DOM
-    // ==========================
     const screen = document.getElementById("screen");
     const acceptWrap = document.getElementById("acceptWrap");
     const acceptBtn = document.getElementById("acceptBtn");
@@ -341,28 +330,22 @@
     const finalActions = document.getElementById("finalActions");
     const mapsBtn = document.getElementById("mapsBtn");
 
-    // audios
     const questionBgAudio = document.getElementById("questionBgAudio");
     const finalBgAudio = document.getElementById("finalBgAudio");
     const typeAudio = document.getElementById("typeAudio");
     const errorAudio = document.getElementById("errorAudio");
     const successAudio = document.getElementById("successAudio");
 
-    // ==========================
-    // STATE
-    // ==========================
     let audioUnlocked = false;
-    let charCount = 0;
+    let audioCtx = null;
 
+    let charCount = 0;
     let attempts = 0;
     const maxAttemptsBeforeHint = 3;
     let hintShown = false;
+    let stage = "intro";
+    let isTransitioning = false;
 
-    let stage = "intro"; // intro | question | final
-
-    // ==========================
-    // HELPERS
-    // ==========================
     function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
     function scrollToBottom(){ screen.scrollTop = screen.scrollHeight; }
 
@@ -381,86 +364,64 @@
         .replace(/[\u0300-\u036f]/g, "");
     }
 
-    // ==========================
-    // AUDIO (iOS unlock)
-    // ==========================
-    // ✅ Solo desbloquea (sin reproducir todos los audios)
+    // ✅ Desbloqueo estable sin “pre-reproducir” todos los audios
     async function unlockAudio(){
       if (audioUnlocked) return;
       audioUnlocked = true;
 
-      // warm-up silencioso: play/pause rápido (evita autoplay restrictions)
-      const warmUp = async (a) => {
-        if (!a) return;
-        const prevVol = a.volume;
-        try{
-          a.volume = 0;
-          await a.play();
-          a.pause();
-          a.currentTime = 0;
-        }catch(_){}
-        a.volume = prevVol;
-      };
-
-      await warmUp(typeAudio);
-      await warmUp(questionBgAudio);
-      await warmUp(finalBgAudio);
-      await warmUp(errorAudio);
-      await warmUp(successAudio);
-    }
-
-    // ✅ Tack: usar clones para que NUNCA quede sonando
-    function playTypeTick(){
-      if (!audioUnlocked || !typeAudio) return;
+      // Preferido: AudioContext (desbloquea salida de audio con un gesto)
       try{
-        const tick = typeAudio.cloneNode(true);
-        tick.volume = TYPE_TICK_VOLUME;
-        tick.play().catch(()=>{});
-        // limpieza
-        tick.addEventListener("ended", () => {
-          try{ tick.remove(); }catch(_){}
-        });
-        // backup: por si el audio no dispara ended (rarísimo)
-        setTimeout(() => { try{ tick.pause(); tick.remove(); }catch(_){ } }, 900);
-      }catch(_){}
-    }
-
-    function playOneShot(a, vol=0.7){
-      if (!audioUnlocked || !a) return;
-      try{
-        a.volume = vol;
-        a.currentTime = 0;
-        a.play().catch(()=>{});
-      }catch(_){}
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === "suspended") await audioCtx.resume();
+      }catch(_){
+        // Fallback: no hacemos warmUp agresivo. Dejamos que el primer play real sea countdown.
+      }
     }
 
     function stopAudio(a){
       if (!a) return;
-      try{
-        a.pause();
-        a.currentTime = 0;
-      }catch(_){}
+      try{ a.pause(); a.currentTime = 0; }catch(_){}
     }
 
-    // ✅ Importante: countdown SOLO aquí
     function startCountdown(){
       if (!audioUnlocked || !questionBgAudio) return;
       try{
+        // reinicia clean
+        questionBgAudio.pause();
+        questionBgAudio.currentTime = 0;
         questionBgAudio.volume = QUESTION_BG_VOL;
         questionBgAudio.loop = true;
         questionBgAudio.play().catch(()=>{});
       }catch(_){}
     }
 
-    // ==========================
-    // TYPING
-    // ==========================
+    // ✅ Tack (clone)
+    function playTypeTick(){
+      if (!audioUnlocked || !typeAudio) return;
+      try{
+        const tick = typeAudio.cloneNode(true);
+        tick.volume = TYPE_TICK_VOLUME;
+        tick.play().catch(()=>{});
+        tick.addEventListener("ended", () => { try{ tick.remove(); }catch(_){ } });
+        setTimeout(() => { try{ tick.pause(); tick.remove(); }catch(_){ } }, 900);
+      }catch(_){}
+    }
+
+    // ✅ Error/Success también como clones (evita “pegados”)
+    function playOneShotClone(baseAudio, vol=0.7){
+      if (!audioUnlocked || !baseAudio) return;
+      try{
+        const a = baseAudio.cloneNode(true);
+        a.volume = vol;
+        a.play().catch(()=>{});
+        a.addEventListener("ended", () => { try{ a.remove(); }catch(_){ } });
+        setTimeout(() => { try{ a.pause(); a.remove(); }catch(_){ } }, 2000);
+      }catch(_){}
+    }
+
     async function typeLines(lines, withTypeSound, append=false){
       charCount = 0;
-
-      if (!append){
-        screen.textContent = "";
-      }
+      if (!append) screen.textContent = "";
 
       const existingCursor = screen.querySelector(".cursor");
       if (existingCursor) existingCursor.remove();
@@ -478,11 +439,8 @@
 
           if (withTypeSound){
             charCount++;
-            if (charCount % TYPE_TICK_EVERY === 0){
-              playTypeTick();
-            }
+            if (charCount % TYPE_TICK_EVERY === 0) playTypeTick();
           }
-
           await sleep(TYPE_SPEED + Math.random()*12);
         }
         cursor.insertAdjacentText("beforebegin", "\n");
@@ -490,7 +448,6 @@
         await sleep(LINE_DELAY);
       }
 
-      // ✅ al terminar de escribir, aseguramos que el audio base de tack no esté reproduciéndose
       try{ typeAudio.pause(); typeAudio.currentTime = 0; }catch(_){}
     }
 
@@ -509,9 +466,6 @@
       attemptsMeta.textContent = `>> ${hintTxt}`;
     }
 
-    // ==========================
-    // FLOWS
-    // ==========================
     async function runIntro(){
       stage = "intro";
       attempts = 0;
@@ -521,12 +475,10 @@
       setVisible(finalActions, false);
       setVisibleBlock(qaWrap, false);
 
-      // ✅ Solo detenemos countdown y lo demás; no “warmups” aquí
       stopAudio(questionBgAudio);
       stopAudio(finalBgAudio);
 
       await typeLines(INTRO_LINES, false, false);
-
       addBlinkPrompt();
       setVisible(acceptWrap, true);
     }
@@ -540,11 +492,9 @@
       setVisible(finalActions, false);
       setVisibleBlock(qaWrap, false);
 
-      // ✅ Asegura que no haya otros loops activos
       stopAudio(finalBgAudio);
 
-      // ✅ Ahora SÍ: countdown empieza y se queda hasta acertar
-      startCountdown();
+      startCountdown(); // ✅ solo countdown
 
       await typeLines(QUESTION_LINES, true, false);
 
@@ -556,7 +506,6 @@
     async function showHint(){
       if (hintShown) return;
       hintShown = true;
-
       await typeLines(HINT_LINES, true, true);
       updateAttemptsMeta();
     }
@@ -568,7 +517,6 @@
       setVisibleBlock(qaWrap, false);
       setVisible(finalActions, false);
 
-      // ✅ Al acertar: se detiene countdown
       stopAudio(questionBgAudio);
 
       await typeLines(FINAL_LINES, true, false);
@@ -577,27 +525,24 @@
       scrollToBottom();
     }
 
-    // ==========================
-    // ANSWER CHECK
-    // ==========================
     function checkAnswer(){
       if (stage !== "question") return;
 
       const user = normalizeAnswer(answerInput.value);
       if (!user){
-        playOneShot(errorAudio, 0.7);
+        playOneShotClone(errorAudio, 0.7);
         return;
       }
 
       if (user === CORRECT_ANSWER_CANON){
-        playOneShot(successAudio, 0.75);
+        playOneShotClone(successAudio, 0.75);
         answerInput.value = "";
         runFinal();
         return;
       }
 
       attempts++;
-      playOneShot(errorAudio, 0.7);
+      playOneShotClone(errorAudio, 0.7);
       updateAttemptsMeta();
 
       screen.insertAdjacentText("beforeend", `\n>> Respuesta incorrecta. Intento ${Math.min(attempts, maxAttemptsBeforeHint)} de ${maxAttemptsBeforeHint}.\n`);
@@ -611,18 +556,25 @@
       }
     }
 
-    // ==========================
-    // EVENTS
-    // ==========================
     acceptBtn.addEventListener("click", async (e) => {
       e.preventDefault();
-      await unlockAudio();   // ✅ solo desbloquea, NO reproduce todo
-      await runQuestion();   // ✅ aquí inicia countdown
+      if (isTransitioning) return;
+      isTransitioning = true;
+
+      // deshabilita doble click
+      acceptBtn.setAttribute("aria-disabled", "true");
+
+      try{
+        await unlockAudio();
+        await runQuestion();
+      } finally {
+        // ya no se vuelve a usar, pero lo dejamos limpio
+        isTransitioning = false;
+      }
     });
 
     submitBtn.addEventListener("click", (e) => {
       e.preventDefault();
-      // por si el primer gesto fue aquí en algún caso raro
       if (!audioUnlocked) unlockAudio();
       checkAnswer();
     });
@@ -640,7 +592,7 @@
 
       const coords = (MAPS_COORDS || "").trim();
       if (!coords){
-        playOneShot(errorAudio, 0.7);
+        playOneShotClone(errorAudio, 0.7);
         return;
       }
 
@@ -660,9 +612,7 @@
       }, 450);
     });
 
-    // ==========================
-    // MATRIX RAIN
-    // ==========================
+    // MATRIX
     const canvas = document.getElementById("matrix");
     const ctx = canvas.getContext("2d");
 
@@ -703,7 +653,6 @@
     }
     setInterval(drawMatrix, 40);
 
-    // ✅ Al entrar: intro
     runIntro();
   </script>
 </body>
