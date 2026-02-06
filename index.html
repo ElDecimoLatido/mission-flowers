@@ -1,248 +1,444 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html>
+<!doctype html>
+<html lang="es">
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <meta http-equiv="Content-Style-Type" content="text/css">
-  <title></title>
-  <meta name="Generator" content="Cocoa HTML Writer">
-  <meta name="CocoaVersion" content="2685.3">
-  <style type="text/css">
-    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Times; -webkit-text-stroke: #000000}
-    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Times; -webkit-text-stroke: #000000; min-height: 14.0px}
-    span.s1 {font-kerning: none}
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Misión</title>
+  <style>
+    :root{
+      --bg:#000;
+      --green:#00ff66;
+      --green-dim:#00aa44;
+      --glow: 0 0 8px rgba(0,255,102,.55), 0 0 24px rgba(0,255,102,.25);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+    }
+    html,body{height:100%; margin:0; background:var(--bg); color:var(--green); font-family:var(--mono);}
+
+    #matrix{
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.25;
+    }
+
+    body::before{
+      content:"";
+      position:fixed; inset:0;
+      background:
+        repeating-linear-gradient(
+          to bottom,
+          rgba(0,255,102,.05),
+          rgba(0,255,102,.05) 1px,
+          rgba(0,0,0,0) 3px,
+          rgba(0,0,0,0) 6px
+        );
+      pointer-events:none;
+      mix-blend-mode:screen;
+      opacity:.35;
+      z-index: 1;
+    }
+
+    body::after{
+      content:"";
+      position:fixed; inset:-40px;
+      background:radial-gradient(circle at center, rgba(0,0,0,0) 0%, rgba(0,0,0,.75) 70%, rgba(0,0,0,.95) 100%);
+      pointer-events:none;
+      z-index: 2;
+    }
+
+    .wrap{
+      min-height:100%;
+      display:flex;
+      align-items:flex-start;
+      justify-content:center;
+      padding:24px;
+      box-sizing:border-box;
+      position: relative;
+      z-index: 3;
+    }
+
+    .wrap > div{
+      width: min(920px, 100%);
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+    }
+
+    .terminal{
+      width:100%;
+      border:1px solid rgba(0,255,102,.25);
+      box-shadow: var(--glow);
+      background:rgba(0,0,0,.65);
+      backdrop-filter: blur(2px);
+      border-radius:14px;
+      overflow:hidden;
+    }
+    .bar{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      padding:10px 14px;
+      border-bottom:1px solid rgba(0,255,102,.18);
+      background:rgba(0,0,0,.85);
+    }
+    .dot{width:10px;height:10px;border-radius:99px; background:rgba(0,255,102,.35);}
+    .title{margin-left:auto; font-size:12px; color:rgba(0,255,102,.7)}
+
+    .screen{
+      padding:16px 16px 18px;
+      font-size:16px;
+      line-height:1.35;
+      white-space:pre-wrap;
+      word-break:break-word;
+      text-shadow: var(--glow);
+
+      max-height: 75vh;
+      overflow-y: auto;
+      scroll-behavior: smooth;
+    }
+
+    .cursor{
+      display:inline-block;
+      width:10px;
+      margin-left:2px;
+      background:var(--green);
+      box-shadow: var(--glow);
+      animation: blink 1s step-end infinite;
+      transform: translateY(2px);
+      height:1em;
+    }
+    @keyframes blink { 50% { opacity:0; } }
+
+    .blink{
+      animation: blinkText 1s steps(2, end) infinite;
+      color: rgba(0,255,102,.95);
+      text-shadow: var(--glow);
+      font-weight: 600;
+      letter-spacing: .2px;
+    }
+    @keyframes blinkText { 50% { opacity:0; } }
+
+    .actions{
+      width:100%;
+      display:flex;
+      justify-content:center;
+      gap:12px;
+      padding: 0 12px;
+      box-sizing:border-box;
+      margin-top:12px;
+    }
+
+    .btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:10px 14px;
+      border:1px solid rgba(0,255,102,.25);
+      border-radius:10px;
+      color:rgba(0,255,102,.9);
+      background:rgba(0,0,0,.55);
+      text-decoration:none;
+      font-size:16px;
+      height:56px;
+
+      min-width:0;
+      width:100%;
+      flex: 1 1 0;
+      box-sizing:border-box;
+      white-space:nowrap;
+      user-select:none;
+    }
+
+    .btn.primary{
+      border-color: rgba(0,255,102,.55);
+      box-shadow: var(--glow);
+      background: rgba(0,0,0,.70);
+      max-width: 360px;
+      width: min(360px, 100%);
+      flex: 0 1 auto;
+    }
+
+    @media (max-width: 520px){
+      .btn{ font-size:14px; height:52px; padding:10px 10px; }
+    }
   </style>
 </head>
 <body>
-<p class="p1"><span class="s1">&lt;!doctype html&gt;</span></p>
-<p class="p1"><span class="s1">&lt;html lang="es"&gt;</span></p>
-<p class="p1"><span class="s1">&lt;head&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;meta charset="utf-8" /&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;meta name="viewport" content="width=device-width, initial-scale=1" /&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;title&gt;Misión&lt;/title&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;style&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>:root{</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>--bg:#000;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>--green:#00ff66;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>--green-dim:#00aa44;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>--glow: 0 0 8px rgba(0,255,102,.55), 0 0 24px rgba(0,255,102,.25);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>--mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>html,body{height:100%; margin:0; background:var(--bg); color:var(--green); font-family:var(--mono);}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>/* Fondo tipo “scanlines” */</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>body::before{</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>content:"";</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>position:fixed; inset:0;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>background:</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>repeating-linear-gradient(</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>to bottom,</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>rgba(0,255,102,.05),</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>rgba(0,255,102,.05) 1px,</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>rgba(0,0,0,0) 3px,</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>rgba(0,0,0,0) 6px</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>pointer-events:none;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>mix-blend-mode:screen;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>opacity:.35;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>/* Sutil “viñeta” */</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>body::after{</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>content:"";</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>position:fixed; inset:-40px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>background:radial-gradient(circle at center, rgba(0,0,0,0) 0%, rgba(0,0,0,.75) 70%, rgba(0,0,0,.95) 100%);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>pointer-events:none;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.wrap{</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>min-height:100%;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>display:flex;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>align-items:flex-start;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>justify-content:center;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>padding:24px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>box-sizing:border-box;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.terminal{</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>width:min(920px, 100%);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>border:1px solid rgba(0,255,102,.25);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>box-shadow: var(--glow);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>background:rgba(0,0,0,.65);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>backdrop-filter: blur(2px);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>border-radius:14px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>overflow:hidden;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.bar{</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>display:flex;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>gap:8px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>align-items:center;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>padding:10px 14px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>border-bottom:1px solid rgba(0,255,102,.18);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>background:rgba(0,0,0,.85);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.dot{width:10px;height:10px;border-radius:99px; background:rgba(0,255,102,.35);}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.title{margin-left:auto; font-size:12px; color:rgba(0,255,102,.7)}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.screen{</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>padding:16px 16px 18px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>font-size:16px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>line-height:1.35;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>white-space:pre-wrap;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>word-break:break-word;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>text-shadow: var(--glow);</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>/* ✅ Scroll automático posible */</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>max-height: 75vh;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>overflow-y: auto;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>/* scroll suave */</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>scroll-behavior: smooth;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.cursor{</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>display:inline-block;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>width:10px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>margin-left:2px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>background:var(--green);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>box-shadow: var(--glow);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>animation: blink 1s step-end infinite;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>transform: translateY(2px);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>height:1em;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>@keyframes blink { 50% { opacity:0; } }</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.hint{</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>margin-top:12px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>font-size:12px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>color:rgba(0,255,102,.55);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>text-align:center;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>max-width:920px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>width:100%;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.replay{</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>margin-top:10px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>display:inline-block;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>padding:10px 14px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>border:1px solid rgba(0,255,102,.25);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>border-radius:10px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>color:rgba(0,255,102,.85);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>background:rgba(0,0,0,.55);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>text-decoration:none;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>font-size:12px;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;/style&gt;</span></p>
-<p class="p1"><span class="s1">&lt;/head&gt;</span></p>
-<p class="p1"><span class="s1">&lt;body&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;div class="wrap"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;div class="terminal" role="img" aria-label="Terminal de misión"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;div class="bar"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;span class="dot"&gt;&lt;/span&gt;&lt;span class="dot"&gt;&lt;/span&gt;&lt;span class="dot"&gt;&lt;/span&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>&lt;span class="title"&gt;SECURE CONSOLE • v1.0&lt;/span&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;div class="screen" id="screen"&gt;&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;div class="hint"&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>&lt;a class="replay" href="#" id="replay" style="display:none;"&gt;Reproducir de nuevo&lt;/a&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;/div&gt;</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;script&gt;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>// ==== PERSONALIZA AQUÍ ====</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const LINES = [</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"&gt;&gt; Conexión establecida...",</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"&gt;&gt; Verificando identidad...",</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"&gt;&gt; Acceso concedido.",</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"",</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"",</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"",</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"",</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"",</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"",</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"&gt;&gt; MISIÓN: OPERACIÓN EL DECIMO LATIDO",</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"&gt;&gt; OBJETIVO: Lean con atención todas las pistas que recibirán.",</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"",</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"",</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"",</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"&gt;&gt; INSTRUCCIONES:",</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"<span class="Apple-converted-space">    </span>Mañana es un día muy especial,",</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"<span class="Apple-converted-space">    </span>necesitamos que se bañen aunque lo hayan hecho ayer Jaeluchis,",</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"<span class="Apple-converted-space">    </span>depílate bien la entre pierna Armando y perjumensen para estar listo temprano,",</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"<span class="Apple-converted-space">    </span>no pierdan tiempo en nada más, pase lo que pase<span class="Apple-converted-space">  </span>sigan el plan,",</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"<span class="Apple-converted-space">    </span>no importa si ya tienen compromiso…",</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"<span class="Apple-converted-space">    </span>¡LO CANCELAN!",</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"<span class="Apple-converted-space">    </span>no pidan ayuda de nadie,",</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"<span class="Apple-converted-space">    </span>pueden documentarlo todo o guardarlo en su corazón.",</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"",</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"",</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"",</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"&gt;&gt; PISTA:",</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"<span class="Apple-converted-space">  </span>** Agua pasa por mi casa,",</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"<span class="Apple-converted-space">  </span>** cate de mi corazón,",</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"<span class="Apple-converted-space">  </span>** a las 10 de la mañana la casa de los abuelos parece ser una buena opción.",</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"",</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"",</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"",</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"",</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"",</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"&gt;&gt; Fin de transmisión.",</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"",</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"",</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>"",</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>""</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>];</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>// Velocidades (ms)</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const TYPE_SPEED = 55;<span class="Apple-converted-space">      </span>// velocidad de letras</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const LINE_DELAY = 450; <span class="Apple-converted-space">    </span>// pausa entre líneas</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const BOOT_DELAY = 650; <span class="Apple-converted-space">    </span>// pausa inicial</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>// ==== Motor de tecleo ====</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const screen = document.getElementById("screen");</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>const replayBtn = document.getElementById("replay");</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>function sleep(ms){ return new Promise(r =&gt; setTimeout(r, ms)); }</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>// ✅ Auto-scroll: siempre baja al final</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>function scrollToBottom() {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>screen.scrollTop = screen.scrollHeight;</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>async function typeAll(){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>replayBtn.style.display = "none";</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>screen.textContent = "";</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>const cursor = document.createElement("span");</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>cursor.className = "cursor";</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>screen.appendChild(cursor);</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>await sleep(BOOT_DELAY);</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>for (const line of LINES){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>for (let i = 0; i &lt; line.length; i++){</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>cursor.insertAdjacentText("beforebegin", line[i]);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>scrollToBottom(); // ✅ baja conforme escribe</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>await sleep(TYPE_SPEED + Math.random()*12);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>cursor.insertAdjacentText("beforebegin", "\n");</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>scrollToBottom(); // ✅ baja al cambiar de línea</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>await sleep(LINE_DELAY);</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>replayBtn.style.display = "inline-block";</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>scrollToBottom();</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>replayBtn.addEventListener("click", (e) =&gt; {</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>e.preventDefault();</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>typeAll();</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>});</span></p>
-<p class="p2"><span class="s1"></span><br></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>// Auto-inicio al abrir</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>typeAll();</span></p>
-<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;/script&gt;</span></p>
-<p class="p1"><span class="s1">&lt;/body&gt;</span></p>
-<p class="p1"><span class="s1">&lt;/html&gt;</span></p>
+
+  <canvas id="matrix"></canvas>
+
+  <!-- ✅ Música de fondo -->
+  <audio id="bgAudio" preload="auto" loop>
+    <source src="audio/bg.mp3" type="audio/mpeg">
+  </audio>
+
+  <!-- ✅ Sonido de tecleo -->
+  <audio id="typeAudio" preload="auto">
+    <source src="audio/tack.mp3" type="audio/mpeg">
+  </audio>
+
+  <div class="wrap">
+    <div>
+      <div class="terminal" role="img" aria-label="Terminal de misión">
+        <div class="bar">
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+          <span class="title">SECURE CONSOLE • v1.1</span>
+        </div>
+        <div class="screen" id="screen"></div>
+      </div>
+
+      <div class="actions" id="acceptWrap" style="display:none;">
+        <a class="btn primary" href="#" id="acceptBtn">Aceptar misión</a>
+      </div>
+
+      <div class="actions" id="finalActions" style="display:none;">
+        <a class="btn" href="#" id="replayBtn">Ver de nuevo</a>
+        <a class="btn"
+           id="musicBtn"
+           href="https://music.apple.com/mx/playlist/operaci%C3%B3n-el-decimo-latido/pl.u-PDb40YptZYj5bz"
+           target="_blank"
+           rel="noopener noreferrer">
+          Abrir Soundtrack
+        </a>
+      </div>
+    </div>
+  </div>
+ 
+  <script>
+    const INTRO_LINES = [
+      ">> Alerta: Misión pendiente detectada.",
+      ">> Jael y Armando...",
+      ">> Agentes, se requiere de su apoyo inmediato.",
+      ">> Active su audio y asegure un perímetro confidencial.",
+      ">> Esta transmisión es solo para agentes autorizados.",
+      "",
+      ">> ¿Proceder?"
+    ];
+
+    const MAIN_LINES = [
+      ">> Conexión establecida...",
+      ">> Verificando identidad...",
+      ".",
+      ".",
+      ".",
+      ".",
+      ".",
+      ".",
+      ">> Acceso concedido.",
+      "",
+      "",
+      "",
+      ">> MISIÓN: OPERACIÓN EL DECIMO LATIDO",
+      ">> OBJETIVO: ENCONTRAR LA UBICACIÓN SECRETA",
+      "",
+      "",
+      "",
+      ">> INSTRUCCIONES:",
+      "    Lean con atención todas las pistas que recibirán.",
+      "    Mañana es un día muy especial,",
+      "    necesitamos que se bañen ",
+      "    aunque ya lo hayan hecho ayer Jaeluchis,",
+      "    depílate bien la entrepierna Armando,",
+      "    y perjumensen para estar listos temprano,",
+      "    no pierdan tiempo en nada más,",
+      "    pase lo que pase sigan el plan,",
+      "    no importa si ya tienen compromiso…",
+      "    ¡LO CANCELAN!",
+      "    no pidan ayuda de nadie,",
+      "    pueden documentarlo todo o guardarlo en su corazón.",
+      "",
+      "",
+      "",
+      ">> PISTA 1:",
+      "    Agua pasa por mi casa,",
+      "    cate de mi corazón,",
+      "    el sábado 7 de febrero,",
+      "    a las 10 de la mañana,",
+      "    la casa de los abuelos parece ser una buena opción.",
+      "",
+      "",
+      "",
+      ">> HERRAMIENTAS DISPONIBLES:",
+      "   Les hemos proporcionado una lista de reproducción",
+      "   con una selección especial para su misión",
+      "   enjoy ❤️",
+      "",
+      "",
+      "",
+      ">> Fin de transmisión."
+    ];
+
+    const TYPE_SPEED = 55;
+    const LINE_DELAY = 450;
+    const BOOT_DELAY = 650;
+
+    // ✅ Ajustes del tecleo (sonido)
+    const TYPE_TICK_EVERY = 3;     // cada cuántas letras suena el tack (2 = más seguido)
+    const TYPE_TICK_VOLUME = 0.25; // volumen del tack
+
+    const screen = document.getElementById("screen");
+    const acceptWrap = document.getElementById("acceptWrap");
+    const acceptBtn = document.getElementById("acceptBtn");
+    const finalActions = document.getElementById("finalActions");
+    const replayBtn = document.getElementById("replayBtn");
+
+    const bgAudio = document.getElementById("bgAudio");
+    const typeAudio = document.getElementById("typeAudio");
+
+    let missionAccepted = false;
+    let audioUnlocked = false;
+    let charCount = 0;
+
+    function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+    function scrollToBottom(){ screen.scrollTop = screen.scrollHeight; }
+
+    function startBackgroundAudio(){
+      if (!bgAudio) return;
+      bgAudio.volume = 0.18;
+      bgAudio.play().catch(()=>{});
+    }
+
+    // ✅ “Desbloqueo” de audio en iOS: se hace tras un click
+    function unlockAudio(){
+      if (audioUnlocked) return;
+      audioUnlocked = true;
+
+      if (typeAudio){
+        typeAudio.volume = TYPE_TICK_VOLUME;
+        typeAudio.play().then(() => {
+          typeAudio.pause();
+          typeAudio.currentTime = 0;
+        }).catch(()=>{});
+      }
+    }
+
+    function playTypeTick(){
+      if (!audioUnlocked || !typeAudio) return;
+      try{
+        typeAudio.currentTime = 0;
+        typeAudio.play().catch(()=>{});
+      }catch(_){}
+    }
+
+    async function typeLines(lines, withTypeSound){
+      charCount = 0;
+      screen.textContent = "";
+      const cursor = document.createElement("span");
+      cursor.className = "cursor";
+      screen.appendChild(cursor);
+
+      await sleep(BOOT_DELAY);
+
+      for (const line of lines){
+        for (let i = 0; i < line.length; i++){
+          cursor.insertAdjacentText("beforebegin", line[i]);
+          scrollToBottom();
+
+          if (withTypeSound){
+            charCount++;
+            if (charCount % TYPE_TICK_EVERY === 0){
+              playTypeTick();
+            }
+          }
+
+          await sleep(TYPE_SPEED + Math.random()*12);
+        }
+        cursor.insertAdjacentText("beforebegin", "\n");
+        scrollToBottom();
+        await sleep(LINE_DELAY);
+      }
+    }
+
+    function addBlinkPrompt(){
+      screen.insertAdjacentText("beforeend", "\n");
+      const prompt = document.createElement("span");
+      prompt.className = "blink";
+      prompt.textContent = '[PRESIONE "ACEPTAR MISIÓN"]';
+      screen.appendChild(prompt);
+      scrollToBottom();
+    }
+
+    async function runIntro(){
+      acceptWrap.style.display = "none";
+      finalActions.style.display = "none";
+
+      // Intro SIN sonido (no hay click aún)
+      await typeLines(INTRO_LINES, false);
+
+      addBlinkPrompt();
+      acceptWrap.style.display = "flex";
+    }
+
+    async function runMain(){
+      acceptWrap.style.display = "none";
+      finalActions.style.display = "none";
+
+      // Main CON sonido de tecleo
+      await typeLines(MAIN_LINES, true);
+
+      finalActions.style.display = "flex";
+      scrollToBottom();
+    }
+
+    acceptBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (missionAccepted) return;
+      missionAccepted = true;
+
+      // ✅ ocultar botón aceptar
+      acceptWrap.style.display = "none";
+
+      // ✅ desbloquea audio y arranca música
+      unlockAudio();
+      startBackgroundAudio();
+
+      // ✅ misión principal
+      runMain();
+    });
+
+    replayBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      runMain();
+    });
+
+    // ===== MATRIX RAIN =====
+    const canvas = document.getElementById("matrix");
+    const ctx = canvas.getContext("2d");
+
+    function resizeCanvas(){
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
+
+    const letters = "アカサタナハマヤラワ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ$#@";
+    const fontSize = 18;
+    let columns = Math.floor(canvas.width / fontSize);
+    let drops = Array(columns).fill(1);
+
+    function drawMatrix(){
+      ctx.fillStyle = "rgba(0, 0, 0, 0.08)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = "#00ff66";
+      ctx.font = fontSize + "px monospace";
+
+      for (let i = 0; i < drops.length; i++){
+        const text = letters[Math.floor(Math.random() * letters.length)];
+        ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+        if (drops[i] * fontSize > canvas.height && Math.random() > 0.975){
+          drops[i] = 0;
+        }
+        drops[i]++;
+      }
+    }
+    setInterval(drawMatrix, 40);
+
+    // ✅ Al entrar: intro con tecleo
+    runIntro();
+  </script>
 </body>
 </html>
