@@ -127,6 +127,7 @@
       padding: 0 12px;
       box-sizing:border-box;
       margin-top:12px;
+      flex-wrap: wrap;
     }
 
     .btn{
@@ -144,7 +145,7 @@
 
       min-width:0;
       width:100%;
-      flex: 1 1 0;
+      flex: 1 1 180px;
       box-sizing:border-box;
       white-space:nowrap;
       user-select:none;
@@ -159,8 +160,49 @@
       flex: 0 1 auto;
     }
 
+    /* === QA input === */
+    .qa{
+      width:100%;
+      display:none;
+      padding: 0 12px;
+      box-sizing:border-box;
+      margin-top:12px;
+    }
+
+    .qaRow{
+      display:flex;
+      gap:12px;
+      width:100%;
+      flex-wrap: wrap;
+      justify-content:center;
+    }
+
+    .qaInput{
+      flex: 1 1 240px;
+      max-width: 520px;
+      height:56px;
+      padding: 0 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(0,255,102,.25);
+      background: rgba(0,0,0,.55);
+      color: rgba(0,255,102,.92);
+      outline: none;
+      box-shadow: none;
+      font-family: var(--mono);
+      font-size: 16px;
+      text-shadow: var(--glow);
+    }
+
+    .qaMeta{
+      margin-top:10px;
+      text-align:center;
+      font-size: 13px;
+      color: rgba(0,255,102,.75);
+    }
+
     @media (max-width: 520px){
       .btn{ font-size:14px; height:52px; padding:10px 10px; }
+      .qaInput{ height:52px; font-size:14px; }
     }
   </style>
 </head>
@@ -168,14 +210,29 @@
 
   <canvas id="matrix"></canvas>
 
-  <!-- ✅ Música de fondo -->
-  <audio id="bgAudio" preload="auto" loop>
-    <source src="audio/bg.mp3" type="audio/mpeg">
+  <!-- ✅ Fondo durante la PREGUNTA -->
+  <audio id="questionBgAudio" preload="auto" loop>
+    <source src="audio/countdown.mp3" type="audio/mpeg">
   </audio>
 
-  <!-- ✅ Sonido de tecleo -->
+  <!-- (Opcional) Fondo final si luego quieres agregar uno -->
+  <audio id="finalBgAudio" preload="auto" loop>
+    <source src="audio/bg-final.mp3" type="audio/mpeg">
+  </audio>
+
+  <!-- ✅ Tack (solo durante tipeo) -->
   <audio id="typeAudio" preload="auto">
     <source src="audio/tack.mp3" type="audio/mpeg">
+  </audio>
+
+  <!-- ✅ Error -->
+  <audio id="errorAudio" preload="auto">
+    <source src="audio/error.mp3" type="audio/mpeg">
+  </audio>
+
+  <!-- ✅ Logro -->
+  <audio id="successAudio" preload="auto">
+    <source src="audio/great.mp3" type="audio/mpeg">
   </audio>
 
   <div class="wrap">
@@ -183,17 +240,29 @@
       <div class="terminal" role="img" aria-label="Terminal de misión">
         <div class="bar">
           <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-          <span class="title">SECURE CONSOLE • v1.1</span>
+          <span class="title">SECURE CONSOLE • v1.3</span>
         </div>
         <div class="screen" id="screen"></div>
       </div>
 
+      <!-- Intro -->
       <div class="actions" id="acceptWrap" style="display:none;">
-        <a class="btn primary" href="#" id="acceptBtn">Aceptar misión</a>
+        <a class="btn primary" href="#" id="acceptBtn">Verificar Identidad</a>
       </div>
 
+      <!-- Pregunta -->
+      <div class="qa" id="qaWrap">
+        <div class="qaRow">
+          <input class="qaInput" id="answerInput" type="text" placeholder="Escribe tu respuesta aquí…" autocomplete="off" />
+          <a class="btn primary" href="#" id="submitBtn">Enviar</a>
+        </div>
+        <div class="qaMeta" id="attemptsMeta"></div>
+      </div>
+
+      <!-- Final -->
       <div class="actions" id="finalActions" style="display:none;">
         <a class="btn" href="#" id="replayBtn">Ver de nuevo</a>
+        <a class="btn primary" href="#" id="mapsBtn">Obtener ubicación secreta</a>
         <a class="btn"
            id="musicBtn"
            href="https://music.apple.com/mx/playlist/operaci%C3%B3n-el-decimo-latido/pl.u-PDb40YptZYj5bz"
@@ -204,126 +273,182 @@
       </div>
     </div>
   </div>
- 
+
   <script>
+    // ==========================
+    // ✅ CONFIG
+    // ==========================
+    // Acepta: Cancun / Cancún / CANCUN / cAnCúN, etc.
+    const CORRECT_ANSWER_CANON = "cancun";
+
+    const MAPS_COORDS = "20.570351487140655,-100.41501823415717";
+    const MAPS_LABEL = "Ubicación secreta";
+
     const INTRO_LINES = [
-      ">> Alerta: Misión pendiente detectada.",
-      ">> Jael y Armando...",
-      ">> Agentes, se requiere de su apoyo inmediato.",
-      ">> Active su audio y asegure un perímetro confidencial.",
-      ">> Esta transmisión es solo para agentes autorizados.",
+      ">> Importante: Para continuar es necesario verificar la identidad de los agentes",
       "",
-      ">> ¿Proceder?"
+      ">> ¿Verificar?"
     ];
 
-    const MAIN_LINES = [
-      ">> Conexión establecida...",
-      ">> Verificando identidad...",
-      ".",
-      ".",
-      ".",
-      ".",
-      ".",
-      ".",
-      ">> Acceso concedido.",
-      "",
-      "",
-      "",
-      ">> MISIÓN: OPERACIÓN EL DECIMO LATIDO",
-      ">> OBJETIVO: ENCONTRAR LA UBICACIÓN SECRETA",
-      "",
-      "",
-      "",
-      ">> INSTRUCCIONES:",
-      "    Lean con atención todas las pistas que recibirán.",
-      "    Mañana es un día muy especial,",
-      "    necesitamos que se bañen ",
-      "    aunque ya lo hayan hecho ayer Jaeluchis,",
-      "    depílate bien la entrepierna Armando,",
-      "    y perjumensen para estar listos temprano,",
-      "    no pierdan tiempo en nada más,",
-      "    pase lo que pase sigan el plan,",
-      "    no importa si ya tienen compromiso…",
-      "    ¡LO CANCELAN!",
-      "    no pidan ayuda de nadie,",
-      "    pueden documentarlo todo o guardarlo en su corazón.",
-      "",
-      "",
-      "",
-      ">> PISTA 1:",
-      "    Agua pasa por mi casa,",
-      "    cate de mi corazón,",
-      "    el sábado 7 de febrero,",
-      "    a las 10 de la mañana,",
-      "    la casa de los abuelos parece ser una buena opción.",
-      "",
-      "",
-      "",
-      ">> HERRAMIENTAS DISPONIBLES:",
-      "   Les hemos proporcionado una lista de reproducción",
-      "   con una selección especial para su misión",
-      "   enjoy ❤️",
-      "",
-      "",
-      "",
-      ">> Fin de transmisión."
+    const QUESTION_LINES = [
+      ">> Mensaje cifrado recibido…",
+      ">> La Pista 2 muestra un lugar estratégico.",
+      ">> Solo los agentes más atentos reconocerán el destino.",
+      ">> ¿En qué ciudad o estado se capturó la foto mostrada?"
     ];
 
+    const HINT_LINES = [
+      "",
+      ">> Has fallado tres veces. El sistema activa el protocolo de ayuda de emergencia.",
+      ">> Pista desbloqueada: El nombre del destino inicia con la letra C y tiene arena.",
+      ">> Analiza de nuevo la imagen. Esta misión aún puede completarse."
+    ];
+
+    const FINAL_LINES = [
+      ">> Nueva ubicación desbloqueada...",
+      ">> Busca aquello que no se guarda en una bolsa ni se come,",
+      ">> es delicado, intencional y fue elegido con cariño."
+    ];
+
+    // ==========================
+    // TUNING
+    // ==========================
     const TYPE_SPEED = 55;
     const LINE_DELAY = 450;
     const BOOT_DELAY = 650;
 
-    // ✅ Ajustes del tecleo (sonido)
-    const TYPE_TICK_EVERY = 3;     // cada cuántas letras suena el tack (2 = más seguido)
-    const TYPE_TICK_VOLUME = 0.25; // volumen del tack
+    const TYPE_TICK_EVERY = 3;
+    const TYPE_TICK_VOLUME = 0.25;
 
+    const QUESTION_BG_VOL = 0.18;
+
+    // ==========================
+    // DOM
+    // ==========================
     const screen = document.getElementById("screen");
     const acceptWrap = document.getElementById("acceptWrap");
     const acceptBtn = document.getElementById("acceptBtn");
+
+    const qaWrap = document.getElementById("qaWrap");
+    const answerInput = document.getElementById("answerInput");
+    const submitBtn = document.getElementById("submitBtn");
+    const attemptsMeta = document.getElementById("attemptsMeta");
+
     const finalActions = document.getElementById("finalActions");
     const replayBtn = document.getElementById("replayBtn");
+    const mapsBtn = document.getElementById("mapsBtn");
 
-    const bgAudio = document.getElementById("bgAudio");
+    // audios
+    const questionBgAudio = document.getElementById("questionBgAudio");
+    const finalBgAudio = document.getElementById("finalBgAudio");
     const typeAudio = document.getElementById("typeAudio");
+    const errorAudio = document.getElementById("errorAudio");
+    const successAudio = document.getElementById("successAudio");
 
-    let missionAccepted = false;
+    // ==========================
+    // STATE
+    // ==========================
     let audioUnlocked = false;
     let charCount = 0;
 
+    let attempts = 0;
+    const maxAttemptsBeforeHint = 3;
+    let hintShown = false;
+
+    let stage = "intro"; // intro | question | final
+
+    // ==========================
+    // HELPERS
+    // ==========================
     function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
     function scrollToBottom(){ screen.scrollTop = screen.scrollHeight; }
 
-    function startBackgroundAudio(){
-      if (!bgAudio) return;
-      bgAudio.volume = 0.18;
-      bgAudio.play().catch(()=>{});
+    function setVisible(el, isVisible){
+      el.style.display = isVisible ? "flex" : "none";
+    }
+    function setVisibleBlock(el, isVisible){
+      el.style.display = isVisible ? "block" : "none";
     }
 
-    // ✅ “Desbloqueo” de audio en iOS: se hace tras un click
+    // Normaliza: minúsculas, trim, sin acentos
+    function normalizeAnswer(s){
+      return (s || "")
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+    }
+
+    // ==========================
+    // AUDIO (iOS unlock)
+    // ==========================
     function unlockAudio(){
       if (audioUnlocked) return;
       audioUnlocked = true;
 
-      if (typeAudio){
-        typeAudio.volume = TYPE_TICK_VOLUME;
-        typeAudio.play().then(() => {
-          typeAudio.pause();
-          typeAudio.currentTime = 0;
+      const warmUp = (a, vol=1) => {
+        if (!a) return;
+        a.volume = vol;
+        a.play().then(() => {
+          a.pause();
+          a.currentTime = 0;
         }).catch(()=>{});
-      }
+      };
+
+      warmUp(typeAudio, TYPE_TICK_VOLUME);
+      warmUp(questionBgAudio, QUESTION_BG_VOL);
+      warmUp(finalBgAudio, 0.0);
+      warmUp(errorAudio, 0.7);
+      warmUp(successAudio, 0.7);
     }
 
     function playTypeTick(){
       if (!audioUnlocked || !typeAudio) return;
       try{
+        typeAudio.volume = TYPE_TICK_VOLUME;
         typeAudio.currentTime = 0;
         typeAudio.play().catch(()=>{});
       }catch(_){}
     }
 
-    async function typeLines(lines, withTypeSound){
+    function playOneShot(a, vol=0.7){
+      if (!audioUnlocked || !a) return;
+      try{
+        a.volume = vol;
+        a.currentTime = 0;
+        a.play().catch(()=>{});
+      }catch(_){}
+    }
+
+    function stopAudio(a){
+      if (!a) return;
+      try{
+        a.pause();
+        a.currentTime = 0;
+      }catch(_){}
+    }
+
+    function startLoop(a, vol){
+      if (!audioUnlocked || !a) return;
+      try{
+        a.volume = vol;
+        a.play().catch(()=>{});
+      }catch(_){}
+    }
+
+    // ==========================
+    // TYPING
+    // ==========================
+    async function typeLines(lines, withTypeSound, append=false){
       charCount = 0;
-      screen.textContent = "";
+
+      if (!append){
+        screen.textContent = "";
+      }
+
+      const existingCursor = screen.querySelector(".cursor");
+      if (existingCursor) existingCursor.remove();
+
       const cursor = document.createElement("span");
       cursor.className = "cursor";
       screen.appendChild(cursor);
@@ -354,55 +479,176 @@
       screen.insertAdjacentText("beforeend", "\n");
       const prompt = document.createElement("span");
       prompt.className = "blink";
-      prompt.textContent = '[PRESIONE "ACEPTAR MISIÓN"]';
+      prompt.textContent = '[PRESIONE "VERIFICAR IDENTIDAD"]';
       screen.appendChild(prompt);
       scrollToBottom();
     }
 
-    async function runIntro(){
-      acceptWrap.style.display = "none";
-      finalActions.style.display = "none";
-
-      // Intro SIN sonido (no hay click aún)
-      await typeLines(INTRO_LINES, false);
-
-      addBlinkPrompt();
-      acceptWrap.style.display = "flex";
+    function updateAttemptsMeta(){
+      const left = Math.max(0, maxAttemptsBeforeHint - attempts);
+      const hintTxt = hintShown ? "Ayuda activada." : (left > 0 ? `Intentos restantes: ${left}` : "Ayuda disponible.");
+      attemptsMeta.textContent = `>> ${hintTxt}`;
     }
 
-    async function runMain(){
-      acceptWrap.style.display = "none";
-      finalActions.style.display = "none";
+    // ==========================
+    // FLOWS
+    // ==========================
+    async function runIntro(){
+      stage = "intro";
+      attempts = 0;
+      hintShown = false;
 
-      // Main CON sonido de tecleo
-      await typeLines(MAIN_LINES, true);
+      setVisible(acceptWrap, false);
+      setVisible(finalActions, false);
+      setVisibleBlock(qaWrap, false);
 
-      finalActions.style.display = "flex";
+      stopAudio(questionBgAudio);
+      stopAudio(finalBgAudio);
+
+      await typeLines(INTRO_LINES, false, false);
+
+      addBlinkPrompt();
+      setVisible(acceptWrap, true);
+    }
+
+    async function runQuestion(){
+      stage = "question";
+      attempts = 0;
+      hintShown = false;
+
+      setVisible(acceptWrap, false);
+      setVisible(finalActions, false);
+      setVisibleBlock(qaWrap, false);
+
+      stopAudio(finalBgAudio);
+      startLoop(questionBgAudio, QUESTION_BG_VOL);
+
+      await typeLines(QUESTION_LINES, true, false);
+
+      setVisibleBlock(qaWrap, true);
+      updateAttemptsMeta();
+      setTimeout(()=>{ try{ answerInput.focus(); }catch(_){ } }, 50);
+    }
+
+    async function showHint(){
+      if (hintShown) return;
+      hintShown = true;
+
+      // Tipea la ayuda sin borrar lo ya escrito
+      await typeLines(HINT_LINES, true, true);
+      updateAttemptsMeta();
+    }
+
+    async function runFinal(){
+      stage = "final";
+
+      setVisible(acceptWrap, false);
+      setVisibleBlock(qaWrap, false);
+      setVisible(finalActions, false);
+
+      stopAudio(questionBgAudio);
+      // si luego quieres un fondo final real, pon volumen y archivo
+      // startLoop(finalBgAudio, 0.18);
+
+      await typeLines(FINAL_LINES, true, false);
+
+      setVisible(finalActions, true);
       scrollToBottom();
     }
 
-    acceptBtn.addEventListener("click", (e) => {
+    // ==========================
+    // ANSWER CHECK
+    // ==========================
+    function checkAnswer(){
+      if (stage !== "question") return;
+
+      const user = normalizeAnswer(answerInput.value);
+      if (!user){
+        playOneShot(errorAudio, 0.7);
+        return;
+      }
+
+      // ✅ Cancún con o sin acento / mayúsculas / minúsculas
+      if (user === CORRECT_ANSWER_CANON){
+        playOneShot(successAudio, 0.75);
+        answerInput.value = "";
+        runFinal();
+        return;
+      }
+
+      // ❌ incorrecto
+      attempts++;
+      playOneShot(errorAudio, 0.7);
+      updateAttemptsMeta();
+
+      screen.insertAdjacentText("beforeend", `\n>> Respuesta incorrecta. Intento ${Math.min(attempts, maxAttemptsBeforeHint)} de ${maxAttemptsBeforeHint}.\n`);
+      scrollToBottom();
+
+      answerInput.value = "";
+      try{ answerInput.focus(); }catch(_){}
+
+      if (attempts >= maxAttemptsBeforeHint){
+        showHint();
+      }
+    }
+
+    // ==========================
+    // EVENTS
+    // ==========================
+    acceptBtn.addEventListener("click", async (e) => {
       e.preventDefault();
-      if (missionAccepted) return;
-      missionAccepted = true;
-
-      // ✅ ocultar botón aceptar
-      acceptWrap.style.display = "none";
-
-      // ✅ desbloquea audio y arranca música
       unlockAudio();
-      startBackgroundAudio();
+      await runQuestion();
+    });
 
-      // ✅ misión principal
-      runMain();
+    submitBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      unlockAudio();
+      checkAnswer();
+    });
+
+    answerInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter"){
+        e.preventDefault();
+        unlockAudio();
+        checkAnswer();
+      }
     });
 
     replayBtn.addEventListener("click", (e) => {
       e.preventDefault();
-      runMain();
+      runIntro();
     });
 
-    // ===== MATRIX RAIN =====
+    mapsBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+
+      const coords = (MAPS_COORDS || "").trim();
+      if (!coords){
+        playOneShot(errorAudio, 0.7);
+        return;
+      }
+
+      const label = encodeURIComponent(MAPS_LABEL || "Ubicación");
+      const apple = `maps://?q=${label}&ll=${encodeURIComponent(coords)}`;
+      const web = `https://www.google.com/maps?q=${encodeURIComponent(coords)}`;
+
+      // iOS: intenta maps:// y hace fallback a web
+      const a = document.createElement("a");
+      a.href = apple;
+      a.rel = "noopener noreferrer";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      setTimeout(() => {
+        window.open(web, "_blank", "noopener,noreferrer");
+      }, 450);
+    });
+
+    // ==========================
+    // MATRIX RAIN
+    // ==========================
     const canvas = document.getElementById("matrix");
     const ctx = canvas.getContext("2d");
 
@@ -425,6 +671,12 @@
       ctx.fillStyle = "#00ff66";
       ctx.font = fontSize + "px monospace";
 
+      const newColumns = Math.floor(canvas.width / fontSize);
+      if (newColumns !== columns){
+        columns = newColumns;
+        drops = Array(columns).fill(1);
+      }
+
       for (let i = 0; i < drops.length; i++){
         const text = letters[Math.floor(Math.random() * letters.length)];
         ctx.fillText(text, i * fontSize, drops[i] * fontSize);
@@ -437,7 +689,7 @@
     }
     setInterval(drawMatrix, 40);
 
-    // ✅ Al entrar: intro con tecleo
+    // ✅ Al entrar: intro
     runIntro();
   </script>
 </body>
