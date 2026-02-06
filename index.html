@@ -220,7 +220,7 @@
     <source src="audio/bg-final.mp3" type="audio/mpeg">
   </audio>
 
-  <!-- ✅ Tack (solo durante tipeo) -->
+  <!-- ✅ Tack base (no se reproduce directo; se clona por tick) -->
   <audio id="typeAudio" preload="auto">
     <source src="audio/tack.mp3" type="audio/mpeg">
   </audio>
@@ -240,7 +240,7 @@
       <div class="terminal" role="img" aria-label="Terminal de misión">
         <div class="bar">
           <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-          <span class="title">SECURE CONSOLE • v1.3</span>
+          <span class="title">SECURE CONSOLE • v1.4</span>
         </div>
         <div class="screen" id="screen"></div>
       </div>
@@ -259,17 +259,9 @@
         <div class="qaMeta" id="attemptsMeta"></div>
       </div>
 
-      <!-- Final -->
+      <!-- Final (solo 1 botón) -->
       <div class="actions" id="finalActions" style="display:none;">
-        <a class="btn" href="#" id="replayBtn">Ver de nuevo</a>
-        <a class="btn primary" href="#" id="mapsBtn">Obtener ubicación secreta</a>
-        <a class="btn"
-           id="musicBtn"
-           href="https://music.apple.com/mx/playlist/operaci%C3%B3n-el-decimo-latido/pl.u-PDb40YptZYj5bz"
-           target="_blank"
-           rel="noopener noreferrer">
-          Abrir Soundtrack
-        </a>
+        <a class="btn primary" href="#" id="mapsBtn">Abrir Ubicación</a>
       </div>
     </div>
   </div>
@@ -278,9 +270,7 @@
     // ==========================
     // ✅ CONFIG
     // ==========================
-    // Acepta: Cancun / Cancún / CANCUN / cAnCúN, etc.
     const CORRECT_ANSWER_CANON = "cancun";
-
     const MAPS_COORDS = "20.570351487140655,-100.41501823415717";
     const MAPS_LABEL = "Ubicación secreta";
 
@@ -319,7 +309,6 @@
 
     const TYPE_TICK_EVERY = 3;
     const TYPE_TICK_VOLUME = 0.25;
-
     const QUESTION_BG_VOL = 0.18;
 
     // ==========================
@@ -335,7 +324,6 @@
     const attemptsMeta = document.getElementById("attemptsMeta");
 
     const finalActions = document.getElementById("finalActions");
-    const replayBtn = document.getElementById("replayBtn");
     const mapsBtn = document.getElementById("mapsBtn");
 
     // audios
@@ -370,7 +358,6 @@
       el.style.display = isVisible ? "block" : "none";
     }
 
-    // Normaliza: minúsculas, trim, sin acentos
     function normalizeAnswer(s){
       return (s || "")
         .trim()
@@ -382,32 +369,44 @@
     // ==========================
     // AUDIO (iOS unlock)
     // ==========================
-    function unlockAudio(){
+    // ✅ Solo desbloquea (sin reproducir todos los audios)
+    async function unlockAudio(){
       if (audioUnlocked) return;
       audioUnlocked = true;
 
-      const warmUp = (a, vol=1) => {
+      // warm-up silencioso: play/pause rápido (evita autoplay restrictions)
+      const warmUp = async (a) => {
         if (!a) return;
-        a.volume = vol;
-        a.play().then(() => {
+        const prevVol = a.volume;
+        try{
+          a.volume = 0;
+          await a.play();
           a.pause();
           a.currentTime = 0;
-        }).catch(()=>{});
+        }catch(_){}
+        a.volume = prevVol;
       };
 
-      warmUp(typeAudio, TYPE_TICK_VOLUME);
-      warmUp(questionBgAudio, QUESTION_BG_VOL);
-      warmUp(finalBgAudio, 0.0);
-      warmUp(errorAudio, 0.7);
-      warmUp(successAudio, 0.7);
+      await warmUp(typeAudio);
+      await warmUp(questionBgAudio);
+      await warmUp(finalBgAudio);
+      await warmUp(errorAudio);
+      await warmUp(successAudio);
     }
 
+    // ✅ Tack: usar clones para que NUNCA quede sonando
     function playTypeTick(){
       if (!audioUnlocked || !typeAudio) return;
       try{
-        typeAudio.volume = TYPE_TICK_VOLUME;
-        typeAudio.currentTime = 0;
-        typeAudio.play().catch(()=>{});
+        const tick = typeAudio.cloneNode(true);
+        tick.volume = TYPE_TICK_VOLUME;
+        tick.play().catch(()=>{});
+        // limpieza
+        tick.addEventListener("ended", () => {
+          try{ tick.remove(); }catch(_){}
+        });
+        // backup: por si el audio no dispara ended (rarísimo)
+        setTimeout(() => { try{ tick.pause(); tick.remove(); }catch(_){ } }, 900);
       }catch(_){}
     }
 
@@ -428,11 +427,13 @@
       }catch(_){}
     }
 
-    function startLoop(a, vol){
-      if (!audioUnlocked || !a) return;
+    // ✅ Importante: countdown SOLO aquí
+    function startCountdown(){
+      if (!audioUnlocked || !questionBgAudio) return;
       try{
-        a.volume = vol;
-        a.play().catch(()=>{});
+        questionBgAudio.volume = QUESTION_BG_VOL;
+        questionBgAudio.loop = true;
+        questionBgAudio.play().catch(()=>{});
       }catch(_){}
     }
 
@@ -473,6 +474,9 @@
         scrollToBottom();
         await sleep(LINE_DELAY);
       }
+
+      // ✅ al terminar de escribir, aseguramos que el audio base de tack no esté reproduciéndose
+      try{ typeAudio.pause(); typeAudio.currentTime = 0; }catch(_){}
     }
 
     function addBlinkPrompt(){
@@ -502,6 +506,7 @@
       setVisible(finalActions, false);
       setVisibleBlock(qaWrap, false);
 
+      // ✅ Solo detenemos countdown y lo demás; no “warmups” aquí
       stopAudio(questionBgAudio);
       stopAudio(finalBgAudio);
 
@@ -520,8 +525,11 @@
       setVisible(finalActions, false);
       setVisibleBlock(qaWrap, false);
 
+      // ✅ Asegura que no haya otros loops activos
       stopAudio(finalBgAudio);
-      startLoop(questionBgAudio, QUESTION_BG_VOL);
+
+      // ✅ Ahora SÍ: countdown empieza y se queda hasta acertar
+      startCountdown();
 
       await typeLines(QUESTION_LINES, true, false);
 
@@ -534,7 +542,6 @@
       if (hintShown) return;
       hintShown = true;
 
-      // Tipea la ayuda sin borrar lo ya escrito
       await typeLines(HINT_LINES, true, true);
       updateAttemptsMeta();
     }
@@ -546,9 +553,8 @@
       setVisibleBlock(qaWrap, false);
       setVisible(finalActions, false);
 
+      // ✅ Al acertar: se detiene countdown
       stopAudio(questionBgAudio);
-      // si luego quieres un fondo final real, pon volumen y archivo
-      // startLoop(finalBgAudio, 0.18);
 
       await typeLines(FINAL_LINES, true, false);
 
@@ -568,7 +574,6 @@
         return;
       }
 
-      // ✅ Cancún con o sin acento / mayúsculas / minúsculas
       if (user === CORRECT_ANSWER_CANON){
         playOneShot(successAudio, 0.75);
         answerInput.value = "";
@@ -576,7 +581,6 @@
         return;
       }
 
-      // ❌ incorrecto
       attempts++;
       playOneShot(errorAudio, 0.7);
       updateAttemptsMeta();
@@ -597,27 +601,23 @@
     // ==========================
     acceptBtn.addEventListener("click", async (e) => {
       e.preventDefault();
-      unlockAudio();
-      await runQuestion();
+      await unlockAudio();   // ✅ solo desbloquea, NO reproduce todo
+      await runQuestion();   // ✅ aquí inicia countdown
     });
 
     submitBtn.addEventListener("click", (e) => {
       e.preventDefault();
-      unlockAudio();
+      // por si el primer gesto fue aquí en algún caso raro
+      if (!audioUnlocked) unlockAudio();
       checkAnswer();
     });
 
     answerInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter"){
         e.preventDefault();
-        unlockAudio();
+        if (!audioUnlocked) unlockAudio();
         checkAnswer();
       }
-    });
-
-    replayBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      runIntro();
     });
 
     mapsBtn.addEventListener("click", (e) => {
@@ -633,7 +633,6 @@
       const apple = `maps://?q=${label}&ll=${encodeURIComponent(coords)}`;
       const web = `https://www.google.com/maps?q=${encodeURIComponent(coords)}`;
 
-      // iOS: intenta maps:// y hace fallback a web
       const a = document.createElement("a");
       a.href = apple;
       a.rel = "noopener noreferrer";
