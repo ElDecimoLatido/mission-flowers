@@ -165,7 +165,6 @@
       pointer-events:none;
     }
 
-    /* === QA input === */
     .qa{
       width:100%;
       display:none;
@@ -297,6 +296,13 @@
     const FINAL_LINES = [
       ">> Nueva ubicación desbloqueada...",
       "",
+      ">> Es momento de partir.",
+      ">> Antes de salir, asegúrate de dejar a Puca cómoda en casa,",
+      ">> con comida servida y todo listo para sus necesidades.",
+      ">> Un agente más se integrará a la aventura,"
+      ">> Squishi te acompañará en el resto de la misión",
+      ">> así que prepárala para integrarla al equipo.",
+      "",
       "",
       ">> Busca aquello que no se guarda en una bolsa ni se come,",
       ">> es delicado, intencional y fue elegido con cariño.",
@@ -364,18 +370,14 @@
         .replace(/[\u0300-\u036f]/g, "");
     }
 
-    // ✅ Desbloqueo estable sin “pre-reproducir” todos los audios
     async function unlockAudio(){
       if (audioUnlocked) return;
       audioUnlocked = true;
 
-      // Preferido: AudioContext (desbloquea salida de audio con un gesto)
       try{
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         if (audioCtx.state === "suspended") await audioCtx.resume();
-      }catch(_){
-        // Fallback: no hacemos warmUp agresivo. Dejamos que el primer play real sea countdown.
-      }
+      }catch(_){}
     }
 
     function stopAudio(a){
@@ -386,7 +388,6 @@
     function startCountdown(){
       if (!audioUnlocked || !questionBgAudio) return;
       try{
-        // reinicia clean
         questionBgAudio.pause();
         questionBgAudio.currentTime = 0;
         questionBgAudio.volume = QUESTION_BG_VOL;
@@ -395,7 +396,6 @@
       }catch(_){}
     }
 
-    // ✅ Tack (clone)
     function playTypeTick(){
       if (!audioUnlocked || !typeAudio) return;
       try{
@@ -407,16 +407,38 @@
       }catch(_){}
     }
 
-    // ✅ Error/Success también como clones (evita “pegados”)
+    // ✅ FIX: no corta great; suena completo y permite tipeo en paralelo.
     function playOneShotClone(baseAudio, vol=0.7){
-      if (!audioUnlocked || !baseAudio) return;
+      if (!audioUnlocked || !baseAudio) return null;
+
       try{
         const a = baseAudio.cloneNode(true);
         a.volume = vol;
+
+        let cleaned = false;
+        const cleanup = () => {
+          if (cleaned) return;
+          cleaned = true;
+          try{ a.remove(); }catch(_){}
+        };
+
+        a.addEventListener("ended", cleanup, { once:true });
+
+        a.addEventListener("loadedmetadata", () => {
+          const d = Number.isFinite(a.duration) ? a.duration : 0;
+          if (d > 0){
+            setTimeout(cleanup, Math.ceil(d * 1000) + 800);
+          }
+        }, { once:true });
+
+        // fallback final muy largo (no corta audios normales)
+        setTimeout(cleanup, 30000);
+
         a.play().catch(()=>{});
-        a.addEventListener("ended", () => { try{ a.remove(); }catch(_){ } });
-        setTimeout(() => { try{ a.pause(); a.remove(); }catch(_){ } }, 2000);
-      }catch(_){}
+        return a;
+      }catch(_){
+        return null;
+      }
     }
 
     async function typeLines(lines, withTypeSound, append=false){
@@ -478,6 +500,8 @@
       stopAudio(questionBgAudio);
       stopAudio(finalBgAudio);
 
+      acceptBtn.removeAttribute("aria-disabled");
+
       await typeLines(INTRO_LINES, false, false);
       addBlinkPrompt();
       setVisible(acceptWrap, true);
@@ -493,8 +517,7 @@
       setVisibleBlock(qaWrap, false);
 
       stopAudio(finalBgAudio);
-
-      startCountdown(); // ✅ solo countdown
+      startCountdown();
 
       await typeLines(QUESTION_LINES, true, false);
 
@@ -525,7 +548,8 @@
       scrollToBottom();
     }
 
-    function checkAnswer(){
+    // ✅ async para que handlers puedan await (aunque aquí el "great" va en paralelo)
+    async function checkAnswer(){
       if (stage !== "question") return;
 
       const user = normalizeAnswer(answerInput.value);
@@ -535,8 +559,15 @@
       }
 
       if (user === CORRECT_ANSWER_CANON){
-        playOneShotClone(successAudio, 0.75);
         answerInput.value = "";
+
+        // ✅ Detén countdown para que no compita con great
+        stopAudio(questionBgAudio);
+
+        // ✅ Great en paralelo (NO se corta)
+        playOneShotClone(successAudio, 0.85);
+
+        // ✅ Final empieza a tipear al mismo tiempo (con tack)
         runFinal();
         return;
       }
@@ -545,7 +576,10 @@
       playOneShotClone(errorAudio, 0.7);
       updateAttemptsMeta();
 
-      screen.insertAdjacentText("beforeend", `\n>> Respuesta incorrecta. Intento ${Math.min(attempts, maxAttemptsBeforeHint)} de ${maxAttemptsBeforeHint}.\n`);
+      screen.insertAdjacentText(
+        "beforeend",
+        `\n>> Respuesta incorrecta. Intento ${Math.min(attempts, maxAttemptsBeforeHint)} de ${maxAttemptsBeforeHint}.\n`
+      );
       scrollToBottom();
 
       answerInput.value = "";
@@ -561,29 +595,27 @@
       if (isTransitioning) return;
       isTransitioning = true;
 
-      // deshabilita doble click
       acceptBtn.setAttribute("aria-disabled", "true");
 
       try{
         await unlockAudio();
         await runQuestion();
       } finally {
-        // ya no se vuelve a usar, pero lo dejamos limpio
         isTransitioning = false;
       }
     });
 
-    submitBtn.addEventListener("click", (e) => {
+    submitBtn.addEventListener("click", async (e) => {
       e.preventDefault();
-      if (!audioUnlocked) unlockAudio();
-      checkAnswer();
+      if (!audioUnlocked) await unlockAudio();
+      await checkAnswer();
     });
 
-    answerInput.addEventListener("keydown", (e) => {
+    answerInput.addEventListener("keydown", async (e) => {
       if (e.key === "Enter"){
         e.preventDefault();
-        if (!audioUnlocked) unlockAudio();
-        checkAnswer();
+        if (!audioUnlocked) await unlockAudio();
+        await checkAnswer();
       }
     });
 
